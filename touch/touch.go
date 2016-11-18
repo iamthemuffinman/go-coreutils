@@ -40,21 +40,21 @@ A FILE argument string of - is handled specially and causes touch to
 change the times of the file associated with standard output.
 
 Mandatory arguments to long options are mandatory for short options too.
-  -a                     change only the access time
-  -c, --no-create        do not create any files
-  -d, --date=STRING      parse STRING and use it instead of current time
-  -f                     (ignored)
-  -h, --no-dereference   affect each symbolic link instead of any referenced
-                         file (useful only on systems that can change the
-                         timestamps of a symlink)
-  -m                     change only the modification time
-  -r, --reference=FILE   use this file's times instead of current time
-  -t STAMP               use [[CC]YY]MMDDhhmm[.ss] instead of current time
-      --time=WORD        change the specified time:
-                           WORD is access, atime, or use: equivalent to -a
-                           WORD is modify or mtime: equivalent to -m
-      --help     display this help and exit
-      --version  output version information and exit
+  -a					 change only the access time
+  -c, --no-create		 do not create any files
+  -d, --date=STRING		 parse STRING and use it instead of current time
+  -f					 (ignored)
+  -h, --no-dereference	 affect each symbolic link instead of any referenced
+						 file (useful only on systems that can change the
+						 timestamps of a symlink)
+  -m					 change only the modification time
+  -r, --reference=FILE	 use this file's times instead of current time
+  -t STAMP				 use [[CC]YY]MMDDhhmm[.ss] instead of current time
+	  --time=WORD		 change the specified time:
+						   WORD is access, atime, or use: equivalent to -a
+						   WORD is modify or mtime: equivalent to -m
+	  --help	 display this help and exit
+	  --version  output version information and exit
 
 Note that the -d and -t options accept different time-date formats.
 
@@ -70,7 +70,7 @@ There is NO WARRANTY, to the extent permitted by law.
 )
 
 var (
-	nocreate = flag.BoolP("no-create", "c", false, "")
+	noCreate = flag.BoolP("no-create", "c", false, "")
 	version  = flag.BoolP("version", "v", false, "")
 )
 
@@ -81,24 +81,26 @@ func main() {
 	}
 	flag.Parse()
 
-	if *version {
+	switch {
+	case *version:
 		fmt.Fprintf(os.Stdout, "%s", Version)
 		os.Exit(0)
-	}
 
-	if len(flag.Args()) > 0 {
-		for i := 0; i < len(flag.Args()); i++ {
-			filename := flag.Arg(i)
-			_, err := os.Stat(filename)
-			if err == nil {
-				now := time.Now()
-				os.Chtimes(filename, now, now)
-			} else if !(*nocreate) {
-				f, err := os.OpenFile(filename, os.O_WRONLY|os.O_CREATE, 0644)
-				f.Close()
-				if err != nil {
-					log.Fatal(err)
-				}
+	case *noCreate:
+		for _, v := range flag.Args() {
+			f, err := os.Stat(v)
+			if err != nil {
+				fmt.Errorf("couldn't return FileInfo for file %q with error: %s", v, err)
+			}
+
+			f.ModTime = time.Now()
+		}
+
+	default:
+		for _, v := range flag.Args() {
+			f, err := os.Create(v)
+			if err != nil {
+				fmt.Errorf("couldn't create file %q with error: %s", v, err)
 			}
 		}
 	}
